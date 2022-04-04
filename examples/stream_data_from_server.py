@@ -83,8 +83,6 @@ if __name__ == '__main__':
             if "emg" in type_of_data:
                 emg_proc = emg[:, -1:].reshape(emg.shape[0])
                 osc_client.send_message("/emg/processed/", emg_proc.tolist())
-                print(emg_proc)
-
 
             if "imu" in type_of_data:
                 accel_proc = accel_proc.reshape(accel_proc.shape[0])
