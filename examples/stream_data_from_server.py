@@ -11,16 +11,16 @@ from biosiglive.data_processing import add_data_to_pickle
 if __name__ == '__main__':
     # Set program variables
     read_freq = 100  # Be sure that it's the same than server read frequency
-    device_host = "192.168.1.211"  # IP address of computer which run trigno device
-    n_electrode = 10
-    type_of_data = ["emg", "imu"]
+    device_host = "localhost"#'"192.168.1.211"  # IP address of computer which run trigno device
+    n_electrode = 2
+    type_of_data = ["emg"]#, "imu"]
 
     # load MVC data from previous trials.
     try:
         # Read data from the mvc result file (*.mat)
-        list_mvc = sio.loadmat("MVC_xx_xx_xx22/MVC_xxxx.mat")["MVC_list_max"][0]
+        list_mvc = sio.loadmat("MVC_01_08_2021/MVC_xxxx.mat")["MVC_list_max"][0].tolist()
     except IOError:
-        list_mvc = np.random.rand(n_electrode, 1)
+        list_mvc = np.random.rand(n_electrode, 1).tolist()
 
     # Set file to save data
     output_file = "stream_data_xxx"
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     osc_ip = "127.0.0.1"
     osc_port = 51337
     osc_server = True
-    save_data = True
+    save_data = False
     if osc_server is True:
         osc_client = SimpleUDPClient(osc_ip, osc_port)
         print("Streaming OSC activated")
@@ -44,16 +44,18 @@ if __name__ == '__main__':
         client = Client(host_ip, host_port, "TCP")
         data = client.get_data(data=type_of_data,
                                nb_frame_of_interest=read_freq,
+                               nb_of_data_to_export=1,
                                read_frequency=read_freq,
                                raw=True,
                                norm_emg=True,
                                mvc_list=list_mvc
                                )
-        if ["emg"] in type_of_data:
+
+        if "emg" in type_of_data:
             emg = np.array(data['emg'])
             raw_emg = np.array(data['raw_emg'])
 
-        if ["imu"] in type_of_data:
+        if "imu" in type_of_data:
             if len(np.array(data['imu']).shape) == 3:
                 accel_proc = np.array(data['imu'])[:, :3, -1:]
                 gyro_proc = np.array(data['imu'])[:, 3:6, -1:]
@@ -78,11 +80,13 @@ if __name__ == '__main__':
                       f'proc: {emg}\n'
                       f'raw: {raw_emg}\n')
         if osc_server:
-            if ["emg"] in type_of_data:
+            if "emg" in type_of_data:
                 emg_proc = emg[:, -1:].reshape(emg.shape[0])
-                osc_client.send_message("/emg/processed/", emg.tolist())
+                osc_client.send_message("/emg/processed/", emg_proc.tolist())
+                print(emg_proc)
 
-            if ["imu"] in type_of_data:
+
+            if "imu" in type_of_data:
                 accel_proc = accel_proc.reshape(accel_proc.shape[0])
                 gyro_proc = gyro_proc.reshape(gyro_proc.shape[0])
                 osc_client.send_message("/accel/", accel_proc.tolist())
